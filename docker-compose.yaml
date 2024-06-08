@@ -1,0 +1,63 @@
+services:
+  qhcv-vault:
+    container_name: qhcv-vault
+    image: qhcv/vault:1.16.2
+    build: ./docker/vault
+    environment:
+      VAULT_ADDR: "http://0.0.0.0:8200"
+      VAULT_API_ADDR: "http://0.0.0.0:8200"
+    ports:
+      - "8200:8200/tcp"
+    volumes:
+      - ./volumes/vault:/vault/file:rw
+      - ./docker/vault/config:/vault/config
+    cap_add:
+      - IPC_LOCK
+    entrypoint: vault server -log-level trace -config /vault/config/vault-server.json
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://0.0.0.0:8200 || exit 1
+      interval: 10s
+      retries: 12
+      start_period: 10s
+      timeout: 10s
+    networks:
+      localdev:
+        aliases:
+          - vault.qhcv.localdev
+  qhcv-vault-init:
+    container_name: qhcv-vault-init
+    image: qhcv/vault:1.16.2
+    volumes:
+      - ./volumes/vault:/vault/file:r
+    environment:
+      VAULT_ADDR: "http://vault.qhcv.localdev:8200"
+    entrypoint: /bin/sh -c "source /vault-init.sh"
+    depends_on:
+      qhcv-vault:
+        condition: service_healthy
+    networks:
+      - localdev
+  qhcv-terraform:
+    container_name: qhcv-terraform
+    image: qhcv/terraform:1.8.4
+    build: ./docker/terraform
+    environment:
+      VAULT_ADDR: "http://vault.qhcv.localdev:8200"
+      KUBECONFIG: /kube/config
+    working_dir: /mnt/init
+    volumes:
+      - ./volumes/terraform:/mnt/terraform:rw
+      - ./volumes/vault:/vault/file:r
+      - ./volumes/vaultagent:/vault/agent:rw
+      - ./volumes/secrets:/mnt/secrets:rw
+      - ./docker/terraform/init:/mnt/init
+    entrypoint: /bin/sh -c "source /init-vault.sh"
+    depends_on:
+      - qhcv-vault-init
+    links:
+      - qhcv-vault
+    restart: "no"
+    networks:
+      - localdev
+networks:
+  localdev:
