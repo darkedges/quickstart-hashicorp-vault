@@ -23,7 +23,7 @@ docker-compose up qhcv-vault-init
 returns
 
 ```console
-qhcv-vault-init  | VAULT_TOKEN=hvs.w6DjJSVMZ72AEHExfStRU4tL
+qhcv-vault-init  | VAULT_TOKEN=xxxx.xxxxxxxxx
 ```
 
 It also available via
@@ -35,7 +35,7 @@ cat volumes/vault/keys.json | jq .root_token -r
 returns
 
 ```console
-hvs.w6DjJSVMZ72AEHExfStRU4tL
+xxxx.xxxxxxxxx
 ```
 
 ### Terraform Apply
